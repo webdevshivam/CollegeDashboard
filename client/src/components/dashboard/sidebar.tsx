@@ -30,7 +30,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
     )}>
       <div className="flex items-center justify-between p-6 border-b border-primary-800">
-        <h1 className="text-xl font-bold">College Admin</h1>
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-5 h-5 text-primary-900" fill="currentColor">
+              <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold">College Admin</h1>
+        </div>
         <button 
           onClick={onClose}
           className="lg:hidden text-white hover:text-gray-300"
@@ -47,15 +54,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             
             return (
               <Link key={item.name} href={item.href}>
-                <a className={cn(
-                  "flex items-center px-4 py-3 rounded-lg transition-colors",
+                <button className={cn(
+                  "w-full flex items-center px-4 py-3 rounded-lg transition-colors text-left",
                   isActive 
                     ? "text-white bg-primary-800" 
                     : "text-gray-300 hover:text-white hover:bg-primary-800"
                 )}>
                   <Icon className="w-5 h-5 mr-3" />
                   {item.name}
-                </a>
+                </button>
               </Link>
             );
           })}
