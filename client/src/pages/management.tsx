@@ -6,25 +6,26 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ManagementModal from "@/components/modals/management-modal";
-import type { ManagementTeam } from "@shared/schema";
+import type { ManagementTeam } from "@shared/schema"; // ✅ corrected path
 
 export default function Management() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ManagementTeam | null>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: management = [], isLoading } = useQuery({
-    queryKey: ['/api/management'],
+  const { data: managementData = [], isLoading } = useQuery({
+    queryKey: ['/api/managementteam']
   });
 
+
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/management/${id}`);
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/managementteam/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/management'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/managementteam'] }); // ✅ corrected
       toast({
         title: "Success",
         description: "Management team member deleted successfully",
@@ -44,7 +45,7 @@ export default function Management() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this management team member?")) {
       deleteMutation.mutate(id);
     }
@@ -56,7 +57,11 @@ export default function Management() {
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase();
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase();
   };
 
   if (isLoading) {
@@ -73,18 +78,18 @@ export default function Management() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Management Team</h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
-              className="bg-primary-900 hover:bg-primary-800"
+              className="bg-primary-900 hover:bg-primary-800 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Member
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {management.map((member: ManagementTeam) => (
-              <Card key={member.id} className="hover:shadow-md transition-shadow">
+            {managementData.map((member: ManagementTeam) => (
+              <Card key={member._id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4 mb-4">
                     <div className="w-16 h-16 bg-primary-900 rounded-full flex items-center justify-center">
@@ -99,8 +104,8 @@ export default function Management() {
                     </div>
                   </div>
                   <div className="text-sm text-gray-600 mb-4">
-                    <p>ID: {member.managementId}</p>
-                    <p>Mobile: {member.mobileNo}</p>
+                    <p>ID: {member.managementId ?? "N/A"}</p>
+                    <p>Mobile: {member.mobileNo ?? "N/A"}</p>
                   </div>
                   <div className="flex justify-end space-x-2">
                     <Button
@@ -113,7 +118,7 @@ export default function Management() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(member.id)}
+                      onClick={() => handleDelete(member._id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -122,8 +127,8 @@ export default function Management() {
               </Card>
             ))}
           </div>
-          
-          {management.length === 0 && (
+
+          {managementData.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No management team members found
             </div>

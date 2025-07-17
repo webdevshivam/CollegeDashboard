@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertGallerySchema, type Gallery, type InsertGallery } from "@shared/schema";
 import FileUpload from "@/components/ui/file-upload";
+import { useEffect } from "react";
 
 interface GalleryModalProps {
   isOpen: boolean;
@@ -31,15 +32,35 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
       imageUrl: item?.imageUrl || "",
     },
   });
+  useEffect(() => {
+    if (item) {
+      form.reset({
+        galleryId: item.galleryId || "",
+        year: item.year || new Date().getFullYear().toString(),
+        category: item.category || "Events",
+        title: item.title || "",
+        imageUrl: item.imageUrl || "",
+      });
+    } else {
+      form.reset({
+        galleryId: "",
+        year: new Date().getFullYear().toString(),
+        category: "Events",
+        title: "",
+        imageUrl: "",
+      });
+    }
+  }, [item, form]);
+
 
   const mutation = useMutation({
     mutationFn: async (data: InsertGallery) => {
-      const url = item ? `/api/gallery/${item.id}` : '/api/gallery';
-      const method = item ? 'PUT' : 'POST';
+      const url = item ? `/api/gallery/${item._id}` : "/api/gallery";
+      const method = item ? "PUT" : "POST";
       return await apiRequest(method, url, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/gallery'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
       toast({
         title: "Success",
         description: item ? "Gallery item updated successfully" : "Gallery item added successfully",
@@ -75,7 +96,7 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
             {item ? "Edit Gallery Item" : "Add New Gallery Item"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -96,14 +117,16 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
-                  {years.map(year => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="category">Category</Label>
@@ -115,8 +138,10 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -130,7 +155,7 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
               />
             </div>
           </div>
-          
+
           <div>
             <Label>Image</Label>
             <FileUpload
@@ -141,21 +166,21 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
             />
             {form.watch("imageUrl") && (
               <div className="mt-2">
-                <img 
-                  src={form.watch("imageUrl")} 
+                <img
+                  src={form.watch("imageUrl")}
                   alt="Preview"
                   className="w-32 h-24 object-cover rounded-lg"
                 />
               </div>
             )}
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={mutation.isPending}
               className="bg-primary-900 hover:bg-primary-800"
             >

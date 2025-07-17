@@ -16,20 +16,21 @@ export default function Gallery() {
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: gallery = [], isLoading } = useQuery({
-    queryKey: ['/api/gallery'],
+    queryKey: ["/api/gallery"],
+
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/gallery/${id}`);
+    mutationFn: async (_id: string) => {
+      await apiRequest("DELETE", `/api/gallery/${_id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/gallery'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
       toast({
         title: "Success",
         description: "Gallery item deleted successfully",
@@ -45,11 +46,13 @@ export default function Gallery() {
   });
 
   const filteredGallery = gallery.filter((item: Gallery) => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.galleryId.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.galleryId.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesYear = yearFilter === "all" || item.year === yearFilter;
     const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
-    
+
     return matchesSearch && matchesYear && matchesCategory;
   });
 
@@ -58,9 +61,9 @@ export default function Gallery() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (_id: string) => {
     if (confirm("Are you sure you want to delete this gallery item?")) {
-      deleteMutation.mutate(id);
+      deleteMutation.mutate(_id);
     }
   };
 
@@ -86,7 +89,7 @@ export default function Gallery() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Gallery Management</h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-primary-900 hover:bg-primary-800"
             >
@@ -94,7 +97,7 @@ export default function Gallery() {
               Add Image
             </Button>
           </div>
-          
+
           <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="relative">
               <Input
@@ -112,8 +115,10 @@ export default function Gallery() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Years</SelectItem>
-                  {years.map(year => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year}>
+                      {year}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -123,21 +128,23 @@ export default function Gallery() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredGallery.map((item: Gallery) => (
-              <Card key={item.id} className="hover:shadow-md transition-shadow">
+              <Card key={item._id} className="hover:shadow-md transition-shadow">
                 <div className="aspect-w-16 aspect-h-9">
                   {item.imageUrl ? (
-                    <img 
-                      src={item.imageUrl} 
+                    <img
+                      src={item.imageUrl}
                       alt={item.title}
                       className="w-full h-48 object-cover rounded-t-lg"
                     />
@@ -163,7 +170,7 @@ export default function Gallery() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => handleDelete(item._id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -173,7 +180,7 @@ export default function Gallery() {
               </Card>
             ))}
           </div>
-          
+
           {filteredGallery.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No gallery items found

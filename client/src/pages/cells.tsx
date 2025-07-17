@@ -11,20 +11,21 @@ import type { CellsCommittees } from "@shared/schema";
 export default function Cells() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCell, setEditingCell] = useState<CellsCommittees | null>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: cells = [], isLoading } = useQuery({
-    queryKey: ['/api/cells'],
+    queryKey: ['/api/cellscommittees'],
+
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest('DELETE', `/api/cells/${id}`);
+    mutationFn: async (_id: string) => {
+      await apiRequest('DELETE', `/api/cellscommittees/${_id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/cells'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/cellscommittees'] });
       toast({
         title: "Success",
         description: "Cell/Committee deleted successfully",
@@ -44,9 +45,9 @@ export default function Cells() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (_id: string) => {
     if (confirm("Are you sure you want to delete this cell/committee?")) {
-      deleteMutation.mutate(id);
+      deleteMutation.mutate(_id);
     }
   };
 
@@ -78,7 +79,7 @@ export default function Cells() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Cells & Committees</h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-primary-900 hover:bg-primary-800"
             >
@@ -86,16 +87,16 @@ export default function Cells() {
               Add Cell/Committee
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {cells.map((cell: CellsCommittees) => (
-              <Card key={cell.id} className="hover:shadow-md transition-shadow">
+              <Card key={cell._id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="font-semibold text-gray-900">{cell.name}</h4>
                     <span className="text-xs font-medium text-gray-500">{cell.cellId}</span>
                   </div>
-                  
+
                   {cell.pdfUrl && (
                     <div className="flex items-center space-x-4 mb-4">
                       <div className="flex-1">
@@ -115,7 +116,7 @@ export default function Cells() {
                       </Button>
                     </div>
                   )}
-                  
+
                   <div className="flex justify-end space-x-2">
                     <Button
                       variant="ghost"
@@ -127,7 +128,7 @@ export default function Cells() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(cell.id)}
+                      onClick={() => handleDelete(cell._id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -136,7 +137,7 @@ export default function Cells() {
               </Card>
             ))}
           </div>
-          
+
           {cells.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No cells or committees found

@@ -17,16 +17,20 @@ export default function Faculty() {
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [designationFilter, setDesignationFilter] = useState("all");
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: faculty = [], isLoading } = useQuery({
     queryKey: ['/api/faculty'],
+
   });
 
+  console.log("Fetched faculty data:", faculty);
+
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+
+    mutationFn: async (id: string) => {
       await apiRequest('DELETE', `/api/faculty/${id}`);
     },
     onSuccess: () => {
@@ -47,10 +51,10 @@ export default function Faculty() {
 
   const filteredFaculty = faculty.filter((member: Faculty) => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.facultyId.toLowerCase().includes(searchTerm.toLowerCase());
+      member.facultyId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = departmentFilter === "all" || member.department === departmentFilter;
     const matchesDesignation = designationFilter === "all" || member.designation === designationFilter;
-    
+
     return matchesSearch && matchesDepartment && matchesDesignation;
   });
 
@@ -59,9 +63,11 @@ export default function Faculty() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
+
     if (confirm("Are you sure you want to delete this faculty member?")) {
       deleteMutation.mutate(id);
+
     }
   };
 
@@ -84,7 +90,7 @@ export default function Faculty() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Faculty Management</h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-primary-900 hover:bg-primary-800"
             >
@@ -92,7 +98,7 @@ export default function Faculty() {
               Add Faculty
             </Button>
           </div>
-          
+
           <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="relative">
               <Input
@@ -131,11 +137,12 @@ export default function Faculty() {
               </Select>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Image</TableHead> {/* 👈 New column */}
                   <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Department</TableHead>
@@ -146,7 +153,18 @@ export default function Faculty() {
               </TableHeader>
               <TableBody>
                 {filteredFaculty.map((member: Faculty) => (
-                  <TableRow key={member.id}>
+                  <TableRow key={member._id}>
+                    <TableCell>
+                      {member.imageUrl ? (
+                        <img
+                          src={member.imageUrl}
+                          alt={member.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-200" />
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{member.facultyId}</TableCell>
                     <TableCell>{member.name}</TableCell>
                     <TableCell>{member.department}</TableCell>
@@ -164,7 +182,7 @@ export default function Faculty() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(member.id)}
+                          onClick={() => handleDelete(member._id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -175,7 +193,7 @@ export default function Faculty() {
               </TableBody>
             </Table>
           </div>
-          
+
           {filteredFaculty.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No faculty members found

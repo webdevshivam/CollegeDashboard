@@ -1,12 +1,15 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertNewsSchema, type News, type InsertNews } from "@shared/schema";
@@ -24,22 +27,43 @@ export default function NewsModal({ isOpen, onClose, news }: NewsModalProps) {
   const form = useForm<InsertNews>({
     resolver: zodResolver(insertNewsSchema),
     defaultValues: {
-      newsId: news?.newsId || "",
-      title: news?.title || "",
-      description: news?.description || "",
-      importance: news?.importance || "medium",
-      link: news?.link || "",
+      newsId: "",
+      title: "",
+      description: "",
+      importance: "medium",
+      link: "",
     },
   });
 
+  useEffect(() => {
+    if (news) {
+      form.reset({
+        newsId: news.newsId,
+        title: news.title,
+        description: news.description,
+        importance: news.importance,
+        link: news.link || "",
+      });
+    } else {
+      form.reset({
+        newsId: "",
+        title: "",
+        description: "",
+        importance: "medium",
+        link: "",
+      });
+    }
+  }, [news, form]);
+
   const mutation = useMutation({
     mutationFn: async (data: InsertNews) => {
-      const url = news ? `/api/news/${news.id}` : '/api/news';
-      const method = news ? 'PUT' : 'POST';
+      const id = news?._id || news?.id;
+      const url = news ? `/api/news/${id}` : "/api/news";
+      const method = news ? "PUT" : "POST";
       return await apiRequest(method, url, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/news'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news"] });
       toast({
         title: "Success",
         description: news ? "News updated successfully" : "News added successfully",
@@ -64,11 +88,9 @@ export default function NewsModal({ isOpen, onClose, news }: NewsModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>
-            {news ? "Edit News/Notice" : "Add New News/Notice"}
-          </DialogTitle>
+          <DialogTitle>{news ? "Edit News/Notice" : "Add New News/Notice"}</DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -96,7 +118,7 @@ export default function NewsModal({ isOpen, onClose, news }: NewsModalProps) {
               </Select>
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -105,7 +127,7 @@ export default function NewsModal({ isOpen, onClose, news }: NewsModalProps) {
               placeholder="Enter news title"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -115,7 +137,7 @@ export default function NewsModal({ isOpen, onClose, news }: NewsModalProps) {
               rows={4}
             />
           </div>
-          
+
           <div>
             <Label htmlFor="link">Link (Optional)</Label>
             <Input
@@ -124,13 +146,13 @@ export default function NewsModal({ isOpen, onClose, news }: NewsModalProps) {
               placeholder="https://example.com"
             />
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={mutation.isPending}
               className="bg-primary-900 hover:bg-primary-800"
             >

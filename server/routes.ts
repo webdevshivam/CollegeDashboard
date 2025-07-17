@@ -1,40 +1,89 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { 
-  insertFacultySchema, insertBannerSchema, insertNewsSchema, insertIprSchema,
-  insertManagementTeamSchema, insertCellsCommitteesSchema, insertGallerySchema
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+import { uploadFile , deleteFile } from "../shared/fileHelpers";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const memoryStorageEngine = multer.memoryStorage();
+const upload = multer({ storage: memoryStorageEngine });
+// Equivalent to __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+
+import {
+  insertFacultySchema,
+  insertBannerSchema,
+  insertNewsSchema,
+  insertIprSchema,
+  insertManagementTeamSchema,
+  insertCellsCommitteesSchema,
+  insertGallerySchema,
 } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Faculty routes
+  // Helper for string ID parsing
+  function getId(req: any) {
+    return req.params.id; // IDs are strings like "6876073fc80381755fbb6aaa"
+  }
+
+  // Faculty
   app.get("/api/faculty", async (req, res) => {
     try {
       const faculty = await storage.getFaculty();
       res.json(faculty);
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to fetch faculty" });
     }
   });
+ app.post("/api/faculty", upload.single("imageUrl"), async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
 
-  app.post("/api/faculty", async (req, res) => {
-    try {
-      const validatedData = insertFacultySchema.parse(req.body);
-      const faculty = await storage.createFaculty(validatedData);
-      res.status(201).json(faculty);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create faculty" });
-      }
-    }
+    // 👇 Upload the file using helper
+    const imageUrl = uploadFile(req, "faculty"); // folder name is "faculty"
+
+    const { facultyId, name, department, designation, gender } = req.body;
+
+    const validatedData = insertFacultySchema.parse({
+      facultyId,
+      name,
+      department,
+      designation,
+      gender,
+      imageUrl: imageUrl || "", // use the uploaded URL or empty string
+    });
+
+    const faculty = await storage.createFaculty(validatedData);
+
+    return res.status(201).json(faculty);
+  } catch (error) {
+  console.error("❌ ERROR:", error); // this is already present
+
+  if (error instanceof z.ZodError) {
+    return res.status(400).json({ message: "Invalid data", errors: error.errors });
+  }
+
+  // Add this:
+  return res.status(500).json({ 
+    message: "Failed to create faculty", 
+    error: error instanceof Error ? error.message : String(error) 
   });
+}
+
+});
+
 
   app.put("/api/faculty/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertFacultySchema.partial().parse(req.body);
       const faculty = await storage.updateFaculty(id, validatedData);
       res.json(faculty);
@@ -46,27 +95,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.delete("/api/faculty/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      await storage.deleteFaculty(id);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete faculty" });
+    const id = getId(req);
+
+    // Step 1: Get faculty data to get the image URL before deleting
+    const faculty = await storage.getFacultyById(id);
+    if (!faculty) {
+      return res.status(404).json({ message: "Faculty not found" });
     }
+
+    // Step 2: Delete the faculty from DB
+    await storage.deleteFaculty(id);
+
+    // Step 3: Delete the image file if present
+    if (faculty.imageUrl) {
+      deleteFile(faculty.imageUrl); // ✅ safe function you already have
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    console.error("❌ DELETE faculty error:", error);
+    return res.status(500).json({ message: "Failed to delete faculty" });
+  }
   });
 
-  // Banner routes
+  // Banners
   app.get("/api/banners", async (req, res) => {
     try {
       const banners = await storage.getBanners();
       res.json(banners);
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to fetch banners" });
     }
   });
-
   app.post("/api/banners", async (req, res) => {
     try {
       const validatedData = insertBannerSchema.parse(req.body);
@@ -80,10 +142,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.put("/api/banners/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertBannerSchema.partial().parse(req.body);
       const banner = await storage.updateBanner(id, validatedData);
       res.json(banner);
@@ -95,27 +156,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
+  const baseDir = process.cwd();
+ app.delete("/api/banners/:id", async (req, res) => {
+  try {
+    const id = getId(req);
 
-  app.delete("/api/banners/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteBanner(id);
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete banner" });
+    // 1. Get banner (for image path)
+    const banner = await storage.getBannerById(id);
+    if (!banner) {
+      return res.status(404).json({ message: "Banner not found" });
     }
-  });
 
-  // News routes
+    // 2. Extract filename from imageUrl
+    const imageUrl = banner.imageUrl; // e.g., http://localhost:5000/server/uploads/xyz.png
+    const filename = imageUrl.split("/").pop()?.split("?")[0]; // Handles query params
+
+    // 3. Delete the image file
+     const filePath = path.join(baseDir, "server", "uploads", filename);
+    
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // 4. Delete the banner from DB
+    await storage.deleteBanner(id);
+
+    res.status(204).send(); // Success (no content)
+  } catch (err) {
+    console.error("Error deleting banner or image:", err);
+    res.status(500).json({ message: "Failed to delete banner" });
+  }
+});
+  // News
   app.get("/api/news", async (req, res) => {
     try {
       const news = await storage.getNews();
       res.json(news);
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to fetch news" });
     }
   });
-
   app.post("/api/news", async (req, res) => {
     try {
       const validatedData = insertNewsSchema.parse(req.body);
@@ -129,10 +209,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.put("/api/news/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertNewsSchema.partial().parse(req.body);
       const news = await storage.updateNews(id, validatedData);
       res.json(news);
@@ -144,27 +223,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.delete("/api/news/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       await storage.deleteNews(id);
       res.status(204).send();
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to delete news" });
     }
   });
 
-  // IPR routes
+  // IPR
   app.get("/api/ipr", async (req, res) => {
     try {
       const ipr = await storage.getIpr();
       res.json(ipr);
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to fetch IPR" });
     }
   });
-
   app.post("/api/ipr", async (req, res) => {
     try {
       const validatedData = insertIprSchema.parse(req.body);
@@ -178,10 +255,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.put("/api/ipr/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertIprSchema.partial().parse(req.body);
       const ipr = await storage.updateIpr(id, validatedData);
       res.json(ipr);
@@ -193,28 +269,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.delete("/api/ipr/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       await storage.deleteIpr(id);
       res.status(204).send();
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to delete IPR" });
     }
   });
 
-  // Management Team routes
-  app.get("/api/management", async (req, res) => {
+  // Management Team
+  app.get("/api/managementteam", async (req, res) => {
     try {
-      const management = await storage.getManagementTeam();
-      res.json(management);
-    } catch (error) {
+      const managementTeam = await storage.getManagementTeam();
+      res.json(managementTeam);
+    } catch {
       res.status(500).json({ message: "Failed to fetch management team" });
     }
   });
-
-  app.post("/api/management", async (req, res) => {
+  app.post("/api/managementteam", async (req, res) => {
     try {
       const validatedData = insertManagementTeamSchema.parse(req.body);
       const management = await storage.createManagementTeam(validatedData);
@@ -227,10 +301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
-  app.put("/api/management/:id", async (req, res) => {
+  app.put("/api/managementteam/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertManagementTeamSchema.partial().parse(req.body);
       const management = await storage.updateManagementTeam(id, validatedData);
       res.json(management);
@@ -242,28 +315,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
-  app.delete("/api/management/:id", async (req, res) => {
+  app.delete("/api/managementteam/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       await storage.deleteManagementTeam(id);
       res.status(204).send();
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to delete management team member" });
     }
   });
 
-  // Cells & Committees routes
-  app.get("/api/cells", async (req, res) => {
+  // Cells & Committees
+  app.get("/api/cellscommittees", async (req, res) => {
     try {
       const cells = await storage.getCellsCommittees();
       res.json(cells);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch cells & committees" });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch cells and committees" });
     }
   });
-
-  app.post("/api/cells", async (req, res) => {
+  app.post("/api/cellscommittees", async (req, res) => {
     try {
       const validatedData = insertCellsCommitteesSchema.parse(req.body);
       const cell = await storage.createCellsCommittees(validatedData);
@@ -276,10 +347,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
-  app.put("/api/cells/:id", async (req, res) => {
+  app.put("/api/cellscommittees/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertCellsCommitteesSchema.partial().parse(req.body);
       const cell = await storage.updateCellsCommittees(id, validatedData);
       res.json(cell);
@@ -291,32 +361,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
-  app.delete("/api/cells/:id", async (req, res) => {
+  app.delete("/api/cellscommittees/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       await storage.deleteCellsCommittees(id);
       res.status(204).send();
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to delete cell/committee" });
     }
   });
 
-  // Gallery routes
+  // Gallery
   app.get("/api/gallery", async (req, res) => {
     try {
       const gallery = await storage.getGallery();
       res.json(gallery);
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to fetch gallery" });
     }
   });
-
   app.post("/api/gallery", async (req, res) => {
     try {
       const validatedData = insertGallerySchema.parse(req.body);
-      const item = await storage.createGallery(validatedData);
-      res.status(201).json(item);
+      const gallery = await storage.createGallery(validatedData);
+      res.status(201).json(gallery);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid data", errors: error.errors });
@@ -325,13 +393,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.put("/api/gallery/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       const validatedData = insertGallerySchema.partial().parse(req.body);
-      const item = await storage.updateGallery(id, validatedData);
-      res.json(item);
+      const gallery = await storage.updateGallery(id, validatedData);
+      res.json(gallery);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid data", errors: error.errors });
@@ -340,17 +407,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
   app.delete("/api/gallery/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = getId(req);
       await storage.deleteGallery(id);
       res.status(204).send();
-    } catch (error) {
+    } catch {
       res.status(500).json({ message: "Failed to delete gallery item" });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Test route for upload
+  // Test route for file upload
+
+
+app.post("/api/upload", upload.single("uploadFile"), (req, res) => {
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  const uploadDir = path.join(__dirname, "uploads");
+
+  // Create uploads folder if not exists
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  // Generate unique file name
+  const ext = path.extname(file.originalname);
+  const base = path.basename(file.originalname, ext);
+  const uniqueName = `${base}-${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+  const filePath = path.join(uploadDir, uniqueName);
+
+  fs.writeFile(filePath, file.buffer, (err) => {
+    if (err) {
+      console.error("Error saving file:", err);
+      return res.status(500).json({ message: "Failed to save file" });
+    }
+
+    res.status(200).json({
+      message: "File uploaded and saved to disk",
+      filename: uniqueName,
+      url: `http://localhost:5000/server/uploads/${uniqueName}`, 
+    });
+  });
+});
+
+
+
+  return createServer(app);
 }

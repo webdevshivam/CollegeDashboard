@@ -16,7 +16,7 @@ export default function Ipr() {
   const [editingIpr, setEditingIpr] = useState<Ipr | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("all");
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -25,7 +25,7 @@ export default function Ipr() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       await apiRequest('DELETE', `/api/ipr/${id}`);
     },
     onSuccess: () => {
@@ -46,10 +46,10 @@ export default function Ipr() {
 
   const filteredIpr = ipr.filter((item: Ipr) => {
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.iprId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.grantNo.toLowerCase().includes(searchTerm.toLowerCase());
+      item.iprId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.grantNo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesYear = yearFilter === "all" || item.year === yearFilter;
-    
+
     return matchesSearch && matchesYear;
   });
 
@@ -58,7 +58,7 @@ export default function Ipr() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this IPR?")) {
       deleteMutation.mutate(id);
     }
@@ -85,7 +85,7 @@ export default function Ipr() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">IPR Management</h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-primary-900 hover:bg-primary-800"
             >
@@ -93,7 +93,7 @@ export default function Ipr() {
               Add IPR
             </Button>
           </div>
-          
+
           <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="relative">
               <Input
@@ -118,7 +118,7 @@ export default function Ipr() {
               </Select>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -155,7 +155,7 @@ export default function Ipr() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item._id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -166,7 +166,7 @@ export default function Ipr() {
               </TableBody>
             </Table>
           </div>
-          
+
           {filteredIpr.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No IPR records found

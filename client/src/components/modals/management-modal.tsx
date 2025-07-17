@@ -1,14 +1,30 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertManagementTeamSchema, type ManagementTeam, type InsertManagementTeam } from "@shared/schema";
+import {
+  insertManagementTeamSchema,
+  type ManagementTeam,
+  type InsertManagementTeam,
+} from "@shared/schema";
 
 interface ManagementModalProps {
   isOpen: boolean;
@@ -16,7 +32,11 @@ interface ManagementModalProps {
   member?: ManagementTeam | null;
 }
 
-export default function ManagementModal({ isOpen, onClose, member }: ManagementModalProps) {
+export default function ManagementModal({
+  isOpen,
+  onClose,
+  member,
+}: ManagementModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -31,17 +51,41 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
     },
   });
 
+
+  useEffect(() => {
+    if (member) {
+      form.reset({
+        managementId: member.managementId || "",
+        name: member.name || "",
+        branch: member.branch || "",  
+        designation: member.designation || "",
+        mobileNo: member.mobileNo || "",
+      });
+    } else {
+      form.reset({
+        managementId: "",
+        name: "",
+        branch: "",
+        designation: "",
+        mobileNo: "",
+      });
+    }
+  }, [member, form]);
+
+
   const mutation = useMutation({
     mutationFn: async (data: InsertManagementTeam) => {
-      const url = member ? `/api/management/${member.id}` : '/api/management';
-      const method = member ? 'PUT' : 'POST';
+      const url = member ? `/api/managementteam/${member._id}` : "/api/managementteam";
+      const method = member ? "PUT" : "POST";
       return await apiRequest(method, url, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/management'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/managementteam"] });
       toast({
         title: "Success",
-        description: member ? "Management member updated successfully" : "Management member added successfully",
+        description: member
+          ? "Management team member updated successfully"
+          : "Management team member added successfully",
       });
       onClose();
       form.reset();
@@ -49,7 +93,9 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
     onError: () => {
       toast({
         title: "Error",
-        description: member ? "Failed to update management member" : "Failed to add management member",
+        description: member
+          ? "Failed to update management team member"
+          : "Failed to add management team member",
         variant: "destructive",
       });
     },
@@ -69,7 +115,7 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
     "Library",
     "Research",
     "Quality Assurance",
-    "Placement Cell"
+    "Placement Cell",
   ];
 
   const designations = [
@@ -86,7 +132,7 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
     "Finance Officer",
     "HR Manager",
     "IT Manager",
-    "Placement Officer"
+    "Placement Officer",
   ];
 
   return (
@@ -97,7 +143,7 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
             {member ? "Edit Management Member" : "Add New Management Member"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -117,7 +163,7 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
               />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="branch">Branch</Label>
@@ -129,8 +175,10 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches.map(branch => (
-                    <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch} value={branch}>
+                      {branch}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -145,14 +193,16 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
                   <SelectValue placeholder="Select designation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {designations.map(designation => (
-                    <SelectItem key={designation} value={designation}>{designation}</SelectItem>
+                  {designations.map((designation) => (
+                    <SelectItem key={designation} value={designation}>
+                      {designation}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
+
           <div>
             <Label htmlFor="mobileNo">Mobile Number</Label>
             <Input
@@ -161,17 +211,21 @@ export default function ManagementModal({ isOpen, onClose, member }: ManagementM
               placeholder="+1 (555) 123-4567"
             />
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={mutation.isPending}
               className="bg-primary-900 hover:bg-primary-800"
             >
-              {mutation.isPending ? "Saving..." : member ? "Update Member" : "Add Member"}
+              {mutation.isPending
+                ? "Saving..."
+                : member
+                  ? "Update Member"
+                  : "Add Member"}
             </Button>
           </div>
         </form>

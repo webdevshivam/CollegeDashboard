@@ -9,10 +9,12 @@ import BannerModal from "@/components/modals/banner-modal";
 import DragDrop from "@/components/ui/drag-drop";
 import type { Banner } from "@shared/schema";
 
+const url: string = 'http://localhost:5000';
+
 export default function Banner() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -21,7 +23,7 @@ export default function Banner() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       await apiRequest('DELETE', `/api/banners/${id}`);
     },
     onSuccess: () => {
@@ -45,7 +47,8 @@ export default function Banner() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
+
     if (confirm("Are you sure you want to delete this banner?")) {
       deleteMutation.mutate(id);
     }
@@ -56,16 +59,19 @@ export default function Banner() {
     setEditingBanner(null);
   };
 
-  const handleReorder = (newOrder: Banner[]) => {
-    // Update priorities based on new order
-    newOrder.forEach((banner, index) => {
-      if (banner.priority !== index + 1) {
-        apiRequest('PUT', `/api/banners/${banner.id}`, {
+  const handleReorder = async (newOrder: Banner[]) => {
+    const updates = newOrder.map((banner, index) => {
+      const newPriority = index + 1;
+      if (banner.priority !== newPriority) {
+        return apiRequest('PUT', `/api/banners/${banner._id}`, {
           ...banner,
-          priority: index + 1,
+          priority: newPriority,
         });
       }
+      return null;
     });
+
+    await Promise.all(updates.filter(Boolean));
     queryClient.invalidateQueries({ queryKey: ['/api/banners'] });
   };
 
@@ -83,7 +89,7 @@ export default function Banner() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Banner Management</h3>
-            <Button 
+            <Button
               onClick={() => setIsModalOpen(true)}
               className="bg-primary-900 hover:bg-primary-800"
             >
@@ -91,9 +97,11 @@ export default function Banner() {
               Add Banner
             </Button>
           </div>
-          
+
           <div className="mb-6">
-            <p className="text-sm text-gray-600 mb-4">Drag and drop banners to reorder their priority</p>
+            <p className="text-sm text-gray-600 mb-4">
+              Drag and drop banners to reorder their priority
+            </p>
             <DragDrop items={banners} onReorder={handleReorder}>
               {(banner: Banner) => (
                 <div className="drag-item bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary-500 transition-colors">
@@ -104,13 +112,13 @@ export default function Banner() {
                       </div>
                       <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                         {banner.imageUrl ? (
-                          <img 
-                            src={banner.imageUrl} 
+                          <img
+                            src={banner.imageUrl}
                             alt={banner.title}
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
-                          <div className="text-gray-400">No Image</div>
+                          <div className="text-gray-400 text-xs">No Image</div>
                         )}
                       </div>
                       <div>
@@ -120,17 +128,13 @@ export default function Banner() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(banner)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(banner)}>
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(banner.id)}
+                        onClick={() => handleDelete(banner._id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -140,7 +144,7 @@ export default function Banner() {
               )}
             </DragDrop>
           </div>
-          
+
           {banners.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No banners found

@@ -37,55 +37,43 @@ export default function Dashboard() {
     <div>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="card-hover transition-all duration-300 bg-gradient-to-br from-white to-primary-50 dark:from-gray-800 dark:to-primary-900/20 border-0 shadow-lg">
+        <Card className="transition-all duration-300 hover:shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Faculty</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white animate-fadeIn">{stats.faculty}</p>
-                <div className="flex items-center mt-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-green-600 dark:text-green-400">Active</span>
-                </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.faculty}</p>
               </div>
-              <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-4 rounded-2xl shadow-lg">
-                <Users className="w-8 h-8 text-white" />
+              <div className="bg-primary-100 dark:bg-primary-900/30 p-3 rounded-full">
+                <Users className="w-8 h-8 text-primary-900 dark:text-primary-400" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="card-hover transition-all duration-300 bg-gradient-to-br from-white to-accent-50 dark:from-gray-800 dark:to-accent-900/20 border-0 shadow-lg">
+        <Card className="transition-all duration-300 hover:shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Banners</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white animate-fadeIn">{stats.banners}</p>
-                <div className="flex items-center mt-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-yellow-600 dark:text-yellow-400">Published</span>
-                </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.banners}</p>
               </div>
-              <div className="bg-gradient-to-br from-accent-500 to-accent-600 p-4 rounded-2xl shadow-lg">
-                <Image className="w-8 h-8 text-white" />
+              <div className="bg-accent-100 dark:bg-accent-900/30 p-3 rounded-full">
+                <Image className="w-8 h-8 text-accent-600 dark:text-accent-400" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="card-hover transition-all duration-300 bg-gradient-to-br from-white to-secondary-50 dark:from-gray-800 dark:to-secondary-900/20 border-0 shadow-lg">
+        <Card className="transition-all duration-300 hover:shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">News/Notices</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white animate-fadeIn">{stats.news}</p>
-                <div className="flex items-center mt-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                  <span className="text-xs text-red-600 dark:text-red-400">Recent</span>
-                </div>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.news}</p>
               </div>
-              <div className="bg-gradient-to-br from-secondary-500 to-secondary-600 p-4 rounded-2xl shadow-lg">
-                <Newspaper className="w-8 h-8 text-white" />
+              <div className="bg-secondary-100 dark:bg-secondary-900/30 p-3 rounded-full">
+                <Newspaper className="w-8 h-8 text-secondary-600 dark:text-secondary-400" />
               </div>
             </div>
           </CardContent>

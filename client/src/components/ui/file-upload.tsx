@@ -5,15 +5,16 @@ import { Button } from "@/components/ui/button";
 interface FileUploadProps {
   onUpload: (url: string) => void;
   accept?: string;
-  maxSize?: number;
+  maxSize?: number; // in bytes
   currentFile?: string;
 }
+const url: string = 'http://localhost:5000';
 
-export default function FileUpload({ 
-  onUpload, 
-  accept = "*", 
+export default function FileUpload({
+  onUpload,
+  accept = "*",
   maxSize = 10 * 1024 * 1024, // 10MB default
-  currentFile 
+  currentFile,
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -25,15 +26,26 @@ export default function FileUpload({
     }
 
     setUploading(true);
-    
+
     try {
-      // In a real app, you would upload to a file storage service
-      // For now, we'll create a mock URL
-      const mockUrl = URL.createObjectURL(file);
-      onUpload(mockUrl);
-    } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      const formData = new FormData();
+      formData.append("uploadFile", file);
+
+      const res = await fetch(`${url}/api/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.url) {
+        throw new Error("Upload failed or invalid response");
+      }
+
+      onUpload(data.url); // Pass uploaded file URL to parent
+    } catch (err) {
+      console.error("Upload failed", err);
+      alert("Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -42,77 +54,69 @@ export default function FileUpload({
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    setDragActive(e.type === "dragenter" || e.type === "dragover");
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFile(file);
-    }
+    if (file) handleFile(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFile(file);
-    }
+    if (file) handleFile(file);
   };
 
   return (
     <div className="space-y-4">
       <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-          dragActive 
-            ? "border-primary-500 bg-primary-50" 
-            : "border-gray-300 hover:border-primary-500"
-        }`}
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
+          ${dragActive ? "border-primary bg-primary-50" : "border-gray-300 hover:border-primary"}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
       >
-        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">
-          Drag and drop your file here, or{' '}
-          <label className="text-primary-900 font-medium cursor-pointer">
-            browse
+        <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+        <p className="text-gray-600 text-sm">
+          Drag and drop a file here or{" "}
+          <label className="text-blue-600 underline cursor-pointer">
+            click to browse
             <input
               type="file"
-              className="hidden"
               accept={accept}
               onChange={handleInputChange}
               disabled={uploading}
+              className="hidden"
             />
           </label>
         </p>
-        <p className="text-xs text-gray-500 mt-2">
-          Max file size: {maxSize / (1024 * 1024)}MB
+        <p className="text-xs text-gray-500 mt-1">
+          Max size: {(maxSize / (1024 * 1024)).toFixed(1)} MB
         </p>
-        {uploading && (
-          <div className="mt-4 text-sm text-gray-600">
-            Uploading...
-          </div>
-        )}
+        {uploading && <p className="text-sm text-gray-500 mt-2">Uploading...</p>}
       </div>
-      
+
       {currentFile && (
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <span className="text-sm text-gray-700 truncate">{currentFile}</span>
+        <div className="flex items-center justify-between bg-gray-100 rounded-lg p-3">
+          <div className="flex items-center gap-3">
+            <img
+              src={currentFile}
+              alt="Uploaded"
+              className="w-12 h-12 rounded object-cover border"
+            />
+            <span className="truncate max-w-[180px] text-sm text-gray-700">{currentFile}</span>
+          </div>
           <Button
-            variant="ghost"
             size="sm"
+            variant="ghost"
             onClick={() => onUpload("")}
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 text-red-500" />
           </Button>
         </div>
       )}

@@ -1,13 +1,23 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertCellsCommitteesSchema, type CellsCommittees, type InsertCellsCommittees } from "@shared/schema";
+import {
+  insertCellsCommitteesSchema,
+  type CellsCommittees,
+  type InsertCellsCommittees,
+} from "@shared/schema";
 import FileUpload from "@/components/ui/file-upload";
 
 interface CellsModalProps {
@@ -23,23 +33,42 @@ export default function CellsModal({ isOpen, onClose, cell }: CellsModalProps) {
   const form = useForm<InsertCellsCommittees>({
     resolver: zodResolver(insertCellsCommitteesSchema),
     defaultValues: {
-      cellId: cell?.cellId || "",
-      name: cell?.name || "",
-      pdfUrl: cell?.pdfUrl || "",
+      cellId: "",
+      name: "",
+      pdfUrl: "",
     },
   });
 
+  // ✅ Reset form when cell changes
+  useEffect(() => {
+    if (cell) {
+      form.reset({
+        cellId: cell.cellId || "",
+        name: cell.name || "",
+        pdfUrl: cell.pdfUrl || "",
+      });
+    } else {
+      form.reset({
+        cellId: "",
+        name: "",
+        pdfUrl: "",
+      });
+    }
+  }, [cell, form]);
+
   const mutation = useMutation({
     mutationFn: async (data: InsertCellsCommittees) => {
-      const url = cell ? `/api/cells/${cell.id}` : '/api/cells';
-      const method = cell ? 'PUT' : 'POST';
+      const url = cell ? `/api/cellscommittees/${cell._id}` : "/api/cellscommittees";
+      const method = cell ? "PUT" : "POST";
       return await apiRequest(method, url, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/cells'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cellscommittees"] });
       toast({
         title: "Success",
-        description: cell ? "Cell/Committee updated successfully" : "Cell/Committee added successfully",
+        description: cell
+          ? "Cell/Committee updated successfully"
+          : "Cell/Committee added successfully",
       });
       onClose();
       form.reset();
@@ -47,7 +76,9 @@ export default function CellsModal({ isOpen, onClose, cell }: CellsModalProps) {
     onError: () => {
       toast({
         title: "Error",
-        description: cell ? "Failed to update cell/committee" : "Failed to add cell/committee",
+        description: cell
+          ? "Failed to update cell/committee"
+          : "Failed to add cell/committee",
         variant: "destructive",
       });
     },
@@ -69,7 +100,7 @@ export default function CellsModal({ isOpen, onClose, cell }: CellsModalProps) {
             {cell ? "Edit Cell/Committee" : "Add New Cell/Committee"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="cellId">Cell ID</Label>
@@ -79,7 +110,7 @@ export default function CellsModal({ isOpen, onClose, cell }: CellsModalProps) {
               placeholder="CELL001"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="name">Name</Label>
             <Input
@@ -88,7 +119,7 @@ export default function CellsModal({ isOpen, onClose, cell }: CellsModalProps) {
               placeholder="Anti-Ragging Committee"
             />
           </div>
-          
+
           <div>
             <Label>PDF Document (Optional)</Label>
             <FileUpload
@@ -98,13 +129,13 @@ export default function CellsModal({ isOpen, onClose, cell }: CellsModalProps) {
               currentFile={form.watch("pdfUrl")}
             />
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={mutation.isPending}
               className="bg-primary-900 hover:bg-primary-800"
             >

@@ -1,20 +1,53 @@
 import express, { type Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import cors from 'cors';
+import path from "path";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Load environment variables from .env file
+
+dotenv.config();
+
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+app.use("/server/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Enable CORS if needed (optional)
+app.use(cors());
+
+// MongoDB Connection
+(async () => {
+  try {
+    const mongoUri = process.env.MONGODB_URI || "mongodb+srv://helloyourwebsitedesign:NQMOEQPEOynSzjNk@cluster0.0bhjtbu.mongodb.net/myDatabase?retryWrites=true&w=majority&appName=Cluster0";
+    await mongoose.connect(mongoUri);
+    console.log("✅ MongoDB Atlas connected");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error);
+    process.exit(1);
+  }
+})();
+
+// Request logger for API routes
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, any> | undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
+  // Wrap res.json to capture the response body for logging
+  const originalResJson = res.json.bind(res);
+  res.json = (bodyJson, ...args) => {
     capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+    return originalResJson(bodyJson, ...args);
   };
 
   res.on("finish", () => {
@@ -36,35 +69,42 @@ app.use((req, res, next) => {
   next();
 });
 
+// Main app setup inside an async function
 (async () => {
   const server = await registerRoutes(app);
 
+  // Global error handler middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
+    // Do NOT throw after sending response, just log error
+    console.error("Unhandled error:", err);
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  const port = process.env.PORT ? Number(process.env.PORT) : 5000;
+
+  server.listen(port, () => {
+    log(`Server is running on http://localhost:${port}`);
   });
+
+  // Graceful shutdown handlers
+  const shutdown = async () => {
+    console.log("\nShutting down gracefully...");
+    await mongoose.disconnect();
+    server.close(() => {
+      console.log("Server closed");
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 })();

@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertFacultySchema, type Faculty, type InsertFaculty } from "@shared/schema";
+import { useEffect } from "react";
 
 interface FacultyModalProps {
   isOpen: boolean;
@@ -24,22 +25,59 @@ export default function FacultyModal({ isOpen, onClose, faculty }: FacultyModalP
   const form = useForm<InsertFaculty>({
     resolver: zodResolver(insertFacultySchema),
     defaultValues: {
-      facultyId: faculty?.facultyId || "",
-      name: faculty?.name || "",
-      department: faculty?.department || "Computer Science",
-      designation: faculty?.designation || "Professor",
-      gender: faculty?.gender || "male",
+      facultyId: "",
+      name: "",
+      department: "Computer Science",
+      designation: "Professor",
+      gender: "male",
     },
   });
 
+  // Populate form when editing
+  useEffect(() => {
+    if (faculty) {
+      form.reset({
+        facultyId: faculty.facultyId,
+        name: faculty.name,
+        department: faculty.department,
+        designation: faculty.designation,
+        gender: faculty.gender,
+      });
+    } else {
+      form.reset();
+    }
+  }, [faculty, form]);
+
   const mutation = useMutation({
     mutationFn: async (data: InsertFaculty) => {
-      const url = faculty ? `/api/faculty/${faculty.id}` : '/api/faculty';
-      const method = faculty ? 'PUT' : 'POST';
-      return await apiRequest(method, url, data);
+      const formData = new FormData();
+      formData.append("facultyId", data.facultyId);
+      formData.append("name", data.name);
+      formData.append("department", data.department);
+      formData.append("designation", data.designation);
+      formData.append("gender", data.gender);
+      if ((data as any).image instanceof File) {
+        formData.append("image", (data as any).image);
+      }
+
+      const id = faculty ? faculty._id?.toString() : "";
+      const method = faculty ? "PUT" : "POST";
+      const url = faculty ? `/api/faculty/${id}` : "/api/faculty";
+
+      const res = await fetch(url, {
+        method,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.message || "Failed to submit");
+      }
+
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/faculty'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/faculty"] });
       toast({
         title: "Success",
         description: faculty ? "Faculty updated successfully" : "Faculty added successfully",
@@ -47,10 +85,10 @@ export default function FacultyModal({ isOpen, onClose, faculty }: FacultyModalP
       onClose();
       form.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: faculty ? "Failed to update faculty" : "Failed to add faculty",
+        description: error.message || "Failed to add/update faculty",
         variant: "destructive",
       });
     },
@@ -64,31 +102,21 @@ export default function FacultyModal({ isOpen, onClose, faculty }: FacultyModalP
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {faculty ? "Edit Faculty" : "Add New Faculty"}
-          </DialogTitle>
+          <DialogTitle>{faculty ? "Edit Faculty" : "Add New Faculty"}</DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" encType="multipart/form-data">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="facultyId">Faculty ID</Label>
-              <Input
-                id="facultyId"
-                {...form.register("facultyId")}
-                placeholder="FAC001"
-              />
+              <Input id="facultyId" {...form.register("facultyId")} placeholder="FAC001" />
             </div>
             <div>
               <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                {...form.register("name")}
-                placeholder="Dr. John Doe"
-              />
+              <Input id="name" {...form.register("name")} placeholder="Dr. John Doe" />
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="department">Department</Label>
@@ -126,7 +154,7 @@ export default function FacultyModal({ isOpen, onClose, faculty }: FacultyModalP
               </Select>
             </div>
           </div>
-          
+
           <div>
             <Label>Gender</Label>
             <RadioGroup
@@ -148,17 +176,30 @@ export default function FacultyModal({ isOpen, onClose, faculty }: FacultyModalP
               </div>
             </RadioGroup>
           </div>
-          
+
+          <div>
+            <Label htmlFor="image">Upload Image</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              {...form.register("image")}
+            />
+          </div>
+
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={mutation.isPending}
               className="bg-primary-900 hover:bg-primary-800"
             >
-              {mutation.isPending ? "Saving..." : faculty ? "Update Faculty" : "Add Faculty"}
+              {mutation.isPending
+                ? "Saving..."
+                : faculty
+                  ? "Update Faculty"
+                  : "Add Faculty"}
             </Button>
           </div>
         </form>

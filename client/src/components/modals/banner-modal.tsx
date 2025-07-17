@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertBannerSchema, type Banner, type InsertBanner } from "@shared/schema";
 import FileUpload from "@/components/ui/file-upload";
+import { useEffect } from "react";
 
 interface BannerModalProps {
   isOpen: boolean;
@@ -25,22 +26,37 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
   const form = useForm<InsertBanner>({
     resolver: zodResolver(insertBannerSchema),
     defaultValues: {
-      bannerId: banner?.bannerId || "",
-      title: banner?.title || "",
-      imageUrl: banner?.imageUrl || "",
-      priority: banner?.priority || 1,
-      isActive: banner?.isActive ?? true,
+      bannerId: "",
+      title: "",
+      imageUrl: "",
+      priority: 1,
+      isActive: true,
     },
   });
 
+  useEffect(() => {
+    if (banner) {
+      form.reset({
+        bannerId: banner.bannerId,
+        title: banner.title,
+        imageUrl: banner.imageUrl,
+        priority: banner.priority,
+        isActive: banner.isActive,
+      });
+    } else {
+      form.reset();
+    }
+  }, [banner, form]);
+
   const mutation = useMutation({
     mutationFn: async (data: InsertBanner) => {
-      const url = banner ? `/api/banners/${banner.id}` : '/api/banners';
-      const method = banner ? 'PUT' : 'POST';
+      const id = banner?._id || "";
+      const url = banner ? `/api/banners/${id}` : "/api/banners";
+      const method = banner ? "PUT" : "POST";
       return await apiRequest(method, url, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/banners'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
       toast({
         title: "Success",
         description: banner ? "Banner updated successfully" : "Banner added successfully",
@@ -73,7 +89,7 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
             {banner ? "Edit Banner" : "Add New Banner"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="bannerId">Banner ID</Label>
@@ -83,7 +99,7 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
               placeholder="BAN001"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="title">Banner Title</Label>
             <Input
@@ -92,63 +108,71 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
               placeholder="Welcome Week 2024"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="priority">Priority</Label>
             <Select
               value={form.watch("priority")?.toString()}
-              onValueChange={(value) => form.setValue("priority", parseInt(value))}
+              onValueChange={(value) =>
+                form.setValue("priority", parseInt(value))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 (Highest)</SelectItem>
-                <SelectItem value="2">2</SelectItem>
-                <SelectItem value="3">3</SelectItem>
-                <SelectItem value="4">4</SelectItem>
-                <SelectItem value="5">5 (Lowest)</SelectItem>
+                {[1, 2, 3, 4, 5].map((val) => (
+                  <SelectItem key={val} value={val.toString()}>
+                    {val} {val === 1 ? "(Highest)" : val === 5 ? "(Lowest)" : ""}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          
+
           <div>
             <Label>Banner Image</Label>
             <FileUpload
               onUpload={handleFileUpload}
               accept="image/*"
-              maxSize={5 * 1024 * 1024} // 5MB
+              maxSize={5 * 1024 * 1024}
             />
             {form.watch("imageUrl") && (
               <div className="mt-2">
-                <img 
-                  src={form.watch("imageUrl")} 
+                <img
+                  src={form.watch("imageUrl")}
                   alt="Banner preview"
                   className="w-32 h-20 object-cover rounded-lg"
                 />
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Switch
               id="isActive"
               checked={form.watch("isActive")}
-              onCheckedChange={(checked) => form.setValue("isActive", checked)}
+              onCheckedChange={(checked) =>
+                form.setValue("isActive", checked)
+              }
             />
             <Label htmlFor="isActive">Active</Label>
           </div>
-          
+
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={mutation.isPending}
               className="bg-primary-900 hover:bg-primary-800"
             >
-              {mutation.isPending ? "Saving..." : banner ? "Update Banner" : "Add Banner"}
+              {mutation.isPending
+                ? "Saving..."
+                : banner
+                  ? "Update Banner"
+                  : "Add Banner"}
             </Button>
           </div>
         </form>
