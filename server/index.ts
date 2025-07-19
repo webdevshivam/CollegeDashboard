@@ -1,5 +1,5 @@
-//docs: https://www.typescriptlang.org/docs/
-console.log("Hello World!");import express, { type Request, Response, NextFunction } from "express";
+
+import express, { type Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from 'cors';
@@ -17,19 +17,25 @@ dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Enable CORS if needed (optional)
-app.use(cors());
+app.use(cors({
+    origin: 'https://college-dashboard-nu.vercel.app' // Replace with your actual deployed frontend URL
+}));
 
 // MongoDB Connection
 (async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || "mongodb+srv://helloyourwebsitedesign:NQMOEQPEOynSzjNk@cluster0.0bhjtbu.mongodb.net/myDatabase?retryWrites=true&w=majority&appName=Cluster0";
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+    console.error("❌ MONGODB_URI environment variable is not set.");
+    process.exit(1); // Crucial: exit if the connection string is missing
+}
     await mongoose.connect(mongoUri);
     console.log("✅ MongoDB Atlas connected");
   } catch (error) {
@@ -84,11 +90,7 @@ app.use((req, res, next) => {
     console.error("Unhandled error:", err);
   });
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+
 
   const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 
