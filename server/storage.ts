@@ -45,7 +45,7 @@ export const storage = {
   deleteBanner: (id: string) => storage._banner.delete(id),
   getBannerById: (id: string) => storage._banner.getById(id),
 
-  
+
 
   // News
   getNews: () => storage._news.getAll(),
@@ -76,6 +76,7 @@ export const storage = {
   createGallery: (data: any) => storage._gallery.create(data),
   updateGallery: (id: string, data: any) => storage._gallery.update(id, data),
   deleteGallery: (id: string) => storage._gallery.delete(id),
+  getGalleryById:(id: string) => storage._gallery.getById(id),
 
   // Internal crud helpers
   _faculty: createCrud(FacultyModel),

@@ -42,59 +42,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch faculty" });
     }
   });
- app.post("/api/faculty", upload.single("imageUrl"), async (req, res) => {
+app.post("/api/faculty", upload.single("image"), async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-
-    // 👇 Upload the file using helper
-    const imageUrl = uploadFile(req, "faculty"); // folder name is "faculty"
-
-    const { facultyId, name, department, designation, gender } = req.body;
+    const imageUrl = req.file ? uploadFile(req, "faculty") : null;
 
     const validatedData = insertFacultySchema.parse({
-      facultyId,
-      name,
-      department,
-      designation,
-      gender,
-      imageUrl: imageUrl || "", // use the uploaded URL or empty string
+      ...req.body,
+      imageUrl: imageUrl,
     });
 
     const faculty = await storage.createFaculty(validatedData);
-
     return res.status(201).json(faculty);
   } catch (error) {
-  console.error("❌ ERROR:", error); // this is already present
-
-  if (error instanceof z.ZodError) {
-    return res.status(400).json({ message: "Invalid data", errors: error.errors });
+    if (error instanceof z.ZodError) {
+      return res
+        .status(400)
+        .json({ message: "Invalid data", errors: error.errors });
+    }
+    console.error("❌ POST faculty error:", error);
+    return res.status(500).json({
+      message: "Failed to create faculty",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
-
-  // Add this:
-  return res.status(500).json({ 
-    message: "Failed to create faculty", 
-    error: error instanceof Error ? error.message : String(error) 
-  });
-}
-
 });
 
 
-  app.put("/api/faculty/:id", async (req, res) => {
-    try {
-      const id = getId(req);
-      const validatedData = insertFacultySchema.partial().parse(req.body);
-      const faculty = await storage.updateFaculty(id, validatedData);
-      res.json(faculty);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to update faculty" });
+  app.put("/api/faculty/:id", upload.single("image"), async (req, res) => {
+  try {
+    const id = getId(req);
+    const oldFaculty = await storage.getFacultyById(id);
+
+    if (!oldFaculty) {
+      return res.status(404).json({ message: "Faculty not found" });
+    }
+
+    let imageUrl = oldFaculty.imageUrl;
+    if (req.file) {
+      // A new file was uploaded, so process it
+      imageUrl = uploadFile(req, "faculty");
+      // If there was an old image, delete it
+      if (oldFaculty.imageUrl) {
+        deleteFile(oldFaculty.imageUrl);
       }
     }
-  });
+
+    const validatedData = insertFacultySchema.partial().parse({
+      ...req.body,
+      imageUrl: imageUrl,
+    });
+
+    const faculty = await storage.updateFaculty(id, validatedData);
+    res.json(faculty);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: "Invalid data", errors: error.errors });
+    } else {
+      res.status(500).json({ message: "Failed to update faculty" });
+    }
+  }
+});
   app.delete("/api/faculty/:id", async (req, res) => {
     try {
     const id = getId(req);
@@ -173,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // 3. Delete the image file
      const filePath = path.join(baseDir, "server", "uploads", filename);
-    
+
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
@@ -450,7 +457,7 @@ app.post("/api/upload", upload.single("uploadFile"), (req, res) => {
     res.status(200).json({
       message: "File uploaded and saved to disk",
       filename: uniqueName,
-      url: `http://localhost:5000/server/uploads/${uniqueName}`, 
+      url: `http://localhost:5000/server/uploads/${uniqueName}`,
     });
   });
 });

@@ -17,14 +17,21 @@ export function uploadFile(req: Request, folder: string): string | null {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
 
-  const fileName = `${Date.now()}-${req.file.originalname}`;
-  const filePath = path.join(uploadsDir, fileName);
+  let fileName = `${Date.now()}-${req.file.originalname}`;
+  let filePath = path.join(uploadsDir, fileName);
 
-  fs.writeFileSync(filePath, req.file.buffer);
+  // If file already saved (diskStorage), move it to your folder
+  if (req.file.path) {
+    fs.renameSync(req.file.path, filePath);
+  } else if (req.file.buffer) {
+    fs.writeFileSync(filePath, req.file.buffer);
+  } else {
+    return null;
+  }
 
-  // Return full URL path to access from client
   return `${req.protocol}://${req.get("host")}/uploads/${folder}/${fileName}`;
 }
+
 
 // Delete a file by its URL
 export function deleteFile(fileUrl: string): void {
