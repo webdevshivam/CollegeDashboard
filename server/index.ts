@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-// Load environment variables from .env file
+
 
 dotenv.config();
 
