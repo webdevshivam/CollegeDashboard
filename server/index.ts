@@ -1,4 +1,5 @@
-import express, { type Request, Response, NextFunction } from "express";
+//docs: https://www.typescriptlang.org/docs/
+console.log("Hello World!");import express, { type Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from 'cors';
