@@ -233,4 +233,4 @@ export interface IStorage {
   createGallery(item: InsertGallery): Promise<Gallery>;
   updateGallery(id: string, item: Partial<InsertGallery>): Promise<Gallery | null>;
   deleteGallery(id: string): Promise<void>;
-} 
+}

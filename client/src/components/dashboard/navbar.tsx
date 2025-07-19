@@ -1,96 +1,132 @@
-import { useState } from "react";
-import { Menu, Search, Bell, ChevronDown } from "lucide-react";
-import { useLocation } from "wouter";
+import {
+  BookUser,
+  CircleUser,
+  FileText,
+  Home,
+  Image,
+  Menu,
+  Moon,
+  Newspaper,
+  Package2,
+  Radio,
+  Search,
+  Sun,
+  UserSquare,
+  Users,
+} from "lucide-react";
+import { Link, useLocation } from "wouter"; // Import from wouter
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/contexts/auth-context";
+import { useTheme } from "@/contexts/theme-context"; // Import useTheme
+import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-interface NavbarProps {
-  onMenuClick: () => void;
-}
+export default function Navbar() {
+  const { logout } = useAuth();
+  const { setTheme } = useTheme(); // Get the setTheme function from context
+  const [location] = useLocation(); // Get the current location from wouter's hook
 
-const pageTitle = {
-  "/": "Dashboard",
-  "/faculty": "Faculty Management",
-  "/banner": "Banner Management",
-  "/news": "News/Notice Management",
-  "/ipr": "IPR Management",
-  "/management": "Management Team",
-  "/cells": "Cells & Committees",
-  "/gallery": "Gallery Management",
-};
-
-export default function Navbar({ onMenuClick }: NavbarProps) {
-  const [location] = useLocation();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  const currentTitle = pageTitle[location as keyof typeof pageTitle] || "Dashboard";
+  const navLinks = [
+    { href: "/", label: "Dashboard", icon: Home },
+    { href: "/banner", label: "Banners", icon: Newspaper },
+    { href: "/faculty", label: "Faculty", icon: Users },
+    { href: "/management", label: "Management", icon: UserSquare },
+    { href: "/news", label: "News", icon: Radio },
+    { href: "/gallery", label: "Gallery", icon: Image },
+    { href: "/cells", label: "Cells", icon: FileText },
+    { href: "/ipr", label: "IPR", icon: BookUser },
+  ];
 
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center">
-          <button 
-            onClick={onMenuClick}
-            className="lg:hidden text-gray-600 hover:text-gray-900 mr-4"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{currentTitle}</h2>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
-          </div>
-          
-          <ThemeToggle />
-          
-          <button className="relative text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-            <Bell className="w-6 h-6" />
-            <span className="absolute -top-2 -right-2 bg-secondary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              3
-            </span>
-          </button>
-          
-          <div className="relative">
-            <button 
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center space-x-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+    <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle navigation menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="flex flex-col">
+          <nav className="grid gap-2 text-lg font-medium">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-lg font-semibold mb-4"
             >
-              <div className="w-8 h-8 bg-primary-900 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium">AD</span>
-              </div>
-              <span className="font-medium">Admin User</span>
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            
-            {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                <div className="py-1">
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Profile
-                  </button>
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Settings
-                  </button>
-                  <div className="border-t border-gray-200 dark:border-gray-600"></div>
-                  <button 
-                    onClick={() => window.location.href = '/login'} 
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            )}
+              <Package2 className="h-6 w-6" />
+              <span>Admin Panel</span>
+            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 hover:text-foreground",
+                  location === link.href
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground"
+                )}
+              >
+                <link.icon className="h-5 w-5" />
+                {link.label}
+              </Link>
+            ))}
+          </nav>
 
+        </SheetContent>
+      </Sheet>
+      <div className="w-full flex-1">
+        <form>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
+            />
           </div>
-        </div>
+
+        </form>
       </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="secondary" size="icon" className="rounded-full">
+            <CircleUser className="h-5 w-5" />
+            <span className="sr-only">Toggle user menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* Theme selection is now part of this dropdown */}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   );
 }

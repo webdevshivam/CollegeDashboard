@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "crypto"; // Import randomUUID
 
 import { uploadFile , deleteFile } from "../shared/fileHelpers";
 import { fileURLToPath } from "url";
@@ -32,6 +33,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function getId(req: any) {
     return req.params.id; // IDs are strings like "6876073fc80381755fbb6aaa"
   }
+
+    app.post("/api/login", (req, res) => {
+    const { username, password } = req.body;
+
+    // This is a simple, hardcoded check for demonstration purposes.
+    // In a real-world application, you should validate against a database
+    // using hashed passwords.
+    if (username === "admin" && password === "admin") {
+      res.status(200).json({ message: "Login successful" });
+    } else {
+      res.status(401).json({ message: "Invalid username or password" });
+    }
+  });
 
   // Faculty
   app.get("/api/faculty", async (req, res) => {
@@ -424,18 +438,18 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
     }
   });
 
-  // Test route for upload
-  // Test route for file upload
+
 
 
 app.post("/api/upload", upload.single("uploadFile"), (req, res) => {
   const file = req.file;
+  const folder = req.body.folder || "general"; // Get folder from request body
 
   if (!file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const uploadDir = path.join(__dirname, "uploads");
+  const uploadDir = path.join(__dirname, "uploads", folder); // Use folder in path
 
   // Create uploads folder if not exists
   if (!fs.existsSync(uploadDir)) {
@@ -444,8 +458,7 @@ app.post("/api/upload", upload.single("uploadFile"), (req, res) => {
 
   // Generate unique file name
   const ext = path.extname(file.originalname);
-  const base = path.basename(file.originalname, ext);
-  const uniqueName = `${base}-${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+  const uniqueName = `${Date.now()}-${randomUUID()}${ext}`;
   const filePath = path.join(uploadDir, uniqueName);
 
   fs.writeFile(filePath, file.buffer, (err) => {
@@ -457,7 +470,7 @@ app.post("/api/upload", upload.single("uploadFile"), (req, res) => {
     res.status(200).json({
       message: "File uploaded and saved to disk",
       filename: uniqueName,
-      url: `http://localhost:5000/server/uploads/${uniqueName}`,
+      url: `http://localhost:5000/uploads/${folder}/${uniqueName}`, // Adjusted URL
     });
   });
 });
