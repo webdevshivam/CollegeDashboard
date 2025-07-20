@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import cors from 'cors';
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.ts";
 import { setupVite, serveStatic, log } from "./vite";
 
 
