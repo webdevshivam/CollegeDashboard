@@ -90,8 +90,8 @@ app.use((req, res, next) => {
 
   const port = process.env.PORT ? Number(process.env.PORT) : 5000;
 
-  server.listen(port, () => {
-    log(`Server is running on http://localhost:${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    log(`Server is running on http://0.0.0.0:${port}`);
   });
 
   // Graceful shutdown handlers

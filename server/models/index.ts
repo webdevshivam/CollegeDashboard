@@ -1,3 +1,4 @@
+
 import mongoose, { Schema } from "mongoose";
 
 export const UserSchema = new Schema({
@@ -14,9 +15,7 @@ export const FacultySchema = new Schema({
   gender: { type: String, required: true },
   imageUrl: { type: String, required: false },
 }, { timestamps: { createdAt: "createdAt" } });
-
 export const FacultyModel = mongoose.models.Faculty || mongoose.model("Faculty", FacultySchema);
-
 
 export const BannerSchema = new Schema({
   bannerId: { type: String, required: true, unique: true },

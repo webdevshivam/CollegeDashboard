@@ -6,7 +6,7 @@ import {
   ManagementTeamModel,
   CellsCommitteesModel,
   GalleryModel,
-} from "./models";
+} from "./models/index";
 
 import { Types } from "mongoose";
 
