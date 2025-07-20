@@ -3,7 +3,7 @@ import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FileUploadProps {
-  onUpload: (url: string) => void;
+  onUpload: (url: string, file?: File) => void;
   accept?: string;
   maxSize?: number; // in bytes
   currentFile?: string;
@@ -42,7 +42,7 @@ export default function FileUpload({
         throw new Error("Upload failed or invalid response");
       }
 
-      onUpload(data.url); // Pass uploaded file URL to parent
+      onUpload(data.url, file); // Pass uploaded file URL to parent
     } catch (err) {
       console.error("Upload failed", err);
       alert("Upload failed. Please try again.");

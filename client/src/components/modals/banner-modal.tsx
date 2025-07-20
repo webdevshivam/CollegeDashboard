@@ -49,11 +49,34 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
   }, [banner, form]);
 
   const mutation = useMutation({
-    mutationFn: async (data: InsertBanner) => {
+    mutationFn: async (data: InsertBanner & { file?: File }) => {
       const id = banner?._id || "";
       const url = banner ? `/api/banners/${id}` : "/api/banners";
       const method = banner ? "PUT" : "POST";
-      return await apiRequest(method, url, data);
+
+      const formData = new FormData();
+      formData.append('bannerId', data.bannerId);
+      formData.append('title', data.title);
+      formData.append('priority', data.priority.toString());
+      formData.append('isActive', data.isActive ? 'true' : 'false');
+      if (data.imageUrl) {
+        formData.append('imageUrl', data.imageUrl);
+      }
+      if (data.file) {
+        formData.append('image', data.file);
+      }
+
+      const response = await fetch(`http://localhost:5000${url}`, {
+        method,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Upload failed');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/banners"] });

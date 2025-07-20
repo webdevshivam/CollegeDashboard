@@ -10,7 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertGallerySchema, type Gallery, type InsertGallery } from "@shared/schema";
 import FileUpload from "@/components/ui/file-upload";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface GalleryModalProps {
   isOpen: boolean;
