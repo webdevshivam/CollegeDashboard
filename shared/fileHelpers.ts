@@ -1,52 +1,71 @@
-import fs from "fs";
-import path from "path";
+
 import { Request } from "express";
-import { fileURLToPath } from "url";
+import cloudinary from "../server/config/cloudinary";
 
-// ✅ Fix for __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-
-// Uploads file from req.file to /uploads/{folder}/filename
-export function uploadFile(req: Request, folder: string): string | null {
+// Upload file to Cloudinary
+export async function uploadFile(req: Request, folder: string): Promise<string | null> {
   if (!req.file) return null;
 
-  const uploadsDir = path.join(__dirname, "../uploads", folder);
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
+  try {
+    const result = await cloudinary.uploader.upload_stream(
+      {
+        folder: folder,
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (error) {
+          console.error('Cloudinary upload error:', error);
+          return null;
+        }
+        return result?.secure_url || null;
+      }
+    );
 
-  let fileName = `${Date.now()}-${req.file.originalname}`;
-  let filePath = path.join(uploadsDir, fileName);
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder: folder,
+          resource_type: "auto",
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            resolve(result?.secure_url || null);
+          }
+        }
+      ).end(req.file.buffer);
+    });
 
-  // If file already saved (diskStorage), move it to your folder
-  if (req.file.path) {
-    fs.renameSync(req.file.path, filePath);
-  } else if (req.file.buffer) {
-    fs.writeFileSync(filePath, req.file.buffer);
-  } else {
+  } catch (error) {
+    console.error('Upload error:', error);
     return null;
   }
-
-  return `${req.protocol}://${req.get("host")}/uploads/${folder}/${fileName}`;
 }
 
+// Delete a file from Cloudinary
+export async function deleteFile(fileUrl: string): Promise<void> {
+  try {
+    // Extract public_id from Cloudinary URL
+    const urlParts = fileUrl.split('/');
+    const filename = urlParts[urlParts.length - 1];
+    const publicId = filename.split('.')[0];
+    
+    // Find the folder from URL
+    const folderIndex = urlParts.findIndex(part => part === 'image' || part === 'video' || part === 'raw');
+    let fullPublicId = publicId;
+    
+    if (folderIndex !== -1 && folderIndex < urlParts.length - 1) {
+      const folderParts = urlParts.slice(folderIndex + 1, -1);
+      if (folderParts.length > 0) {
+        fullPublicId = folderParts.join('/') + '/' + publicId;
+      }
+    }
 
-// Delete a file by its URL
-export function deleteFile(fileUrl: string): void {
-  const fileName = fileUrl.split("/").pop();
-  if (!fileName) return;
-
-  // Match folder name from URL if needed, here assuming inside /uploads/
-  const folderMatch = fileUrl.match(/\/uploads\/([^/]+)\//);
-  const folder = folderMatch ? folderMatch[1] : "";
-
-  const filePath = path.join(__dirname, "../uploads", folder, fileName);
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-    console.log("✅ File deleted:", filePath);
-  } else {
-    console.warn("⚠️ File not found to delete:", filePath);
+    await cloudinary.uploader.destroy(fullPublicId);
+    console.log("✅ File deleted from Cloudinary:", fullPublicId);
+  } catch (error) {
+    console.warn("⚠️ Error deleting file from Cloudinary:", error);
   }
 }

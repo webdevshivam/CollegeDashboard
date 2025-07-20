@@ -8,7 +8,7 @@ interface FileUploadProps {
   maxSize?: number; // in bytes
   currentFile?: string;
 }
-const url: string = 'http://localhost:5000';
+const url: string = window.location.origin.includes('localhost') ? 'http://localhost:5000' : window.location.origin;
 
 export default function FileUpload({
   onUpload,

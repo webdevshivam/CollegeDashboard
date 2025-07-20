@@ -58,7 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 app.post("/api/faculty", upload.single("image"), async (req, res) => {
   try {
-    const imageUrl = req.file ? uploadFile(req, "faculty") : null;
+    const imageUrl = req.file ? await uploadFile(req, "faculty") : null;
 
     const validatedData = insertFacultySchema.parse({
       ...req.body,
@@ -94,10 +94,10 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
     let imageUrl = oldFaculty.imageUrl;
     if (req.file) {
       // A new file was uploaded, so process it
-      imageUrl = uploadFile(req, "faculty");
+      imageUrl = await uploadFile(req, "faculty");
       // If there was an old image, delete it
       if (oldFaculty.imageUrl) {
-        deleteFile(oldFaculty.imageUrl);
+        await deleteFile(oldFaculty.imageUrl);
       }
     }
 
@@ -131,7 +131,7 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
 
     // Step 3: Delete the image file if present
     if (faculty.imageUrl) {
-      deleteFile(faculty.imageUrl); // ✅ safe function you already have
+      await deleteFile(faculty.imageUrl);
     }
 
     return res.status(204).send();
@@ -188,19 +188,13 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
       return res.status(404).json({ message: "Banner not found" });
     }
 
-    // 2. Extract filename from imageUrl
-    const imageUrl = banner.imageUrl; // e.g., http://localhost:5000/server/uploads/xyz.png
-    const filename = imageUrl.split("/").pop()?.split("?")[0]; // Handles query params
-
-    // 3. Delete the image file
-     const filePath = path.join(baseDir, "server", "uploads", filename);
-
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    // 4. Delete the banner from DB
+    // 2. Delete the banner from DB
     await storage.deleteBanner(id);
+
+    // 3. Delete the image file from Cloudinary if present
+    if (banner.imageUrl) {
+      await deleteFile(banner.imageUrl);
+    }
 
     res.status(204).send(); // Success (no content)
   } catch (err) {
@@ -441,38 +435,30 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
 
 
 
-app.post("/api/upload", upload.single("uploadFile"), (req, res) => {
+app.post("/api/upload", upload.single("uploadFile"), async (req, res) => {
   const file = req.file;
-  const folder = req.body.folder || "general"; // Get folder from request body
+  const folder = req.body.folder || "general";
 
   if (!file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const uploadDir = path.join(__dirname, "uploads", folder); // Use folder in path
-
-  // Create uploads folder if not exists
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-
-  // Generate unique file name
-  const ext = path.extname(file.originalname);
-  const uniqueName = `${Date.now()}-${randomUUID()}${ext}`;
-  const filePath = path.join(uploadDir, uniqueName);
-
-  fs.writeFile(filePath, file.buffer, (err) => {
-    if (err) {
-      console.error("Error saving file:", err);
-      return res.status(500).json({ message: "Failed to save file" });
+  try {
+    const fileUrl = await uploadFile(req, folder);
+    
+    if (!fileUrl) {
+      return res.status(500).json({ message: "Failed to upload file" });
     }
 
     res.status(200).json({
-      message: "File uploaded and saved to disk",
-      filename: uniqueName,
-      url: `http://localhost:5000/uploads/${folder}/${uniqueName}`, // Adjusted URL
+      message: "File uploaded successfully to Cloudinary",
+      filename: file.originalname,
+      url: fileUrl,
     });
-  });
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    res.status(500).json({ message: "Failed to upload file" });
+  }
 });
 
 
