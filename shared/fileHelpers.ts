@@ -6,6 +6,12 @@ import cloudinary from "../server/config/cloudinary";
 export async function uploadFile(req: Request, folder: string): Promise<string | null> {
   if (!req.file) return null;
 
+  // Check if Cloudinary is properly configured
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.error('❌ Cloudinary credentials missing. Please check your .env file.');
+    throw new Error('Cloudinary credentials not configured');
+  }
+
   try {
     return new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
@@ -15,9 +21,10 @@ export async function uploadFile(req: Request, folder: string): Promise<string |
         },
         (error, result) => {
           if (error) {
-            console.error('Cloudinary upload error:', error);
+            console.error('❌ Cloudinary upload error:', error);
             reject(error);
           } else {
+            console.log('✅ File uploaded to Cloudinary:', result?.secure_url);
             resolve(result?.secure_url || null);
           }
         }
@@ -25,8 +32,8 @@ export async function uploadFile(req: Request, folder: string): Promise<string |
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
-    return null;
+    console.error('❌ Upload error:', error);
+    throw error;
   }
 }
 
