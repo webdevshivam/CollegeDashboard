@@ -3,10 +3,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from 'cors';
-import path from "path";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -31,7 +29,7 @@ app.use(cors({
 // MongoDB Connection
 (async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI;
+    const mongoUri = process.env.MONGODB_URI || "mongodb+srv://helloyourwebsitedesign:NQMOEQPEOynSzjNk@cluster0.0bhjtbu.mongodb.net/myDatabase?retryWrites=true&w=majority&appName=Cluster0";
     if (!mongoUri) {
     console.error("❌ MONGODB_URI environment variable is not set.");
     process.exit(1);
