@@ -150,23 +150,48 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
       res.status(500).json({ message: "Failed to fetch banners" });
     }
   });
-  app.post("/api/banners", async (req, res) => {
+  app.post("/api/banners", upload.single("image"), async (req, res) => {
     try {
-      const validatedData = insertBannerSchema.parse(req.body);
+      const imageUrl = req.file ? await uploadFile(req, "banners") : null;
+
+      const validatedData = insertBannerSchema.parse({
+        ...req.body,
+        imageUrl: imageUrl,
+      });
+
       const banner = await storage.createBanner(validatedData);
       res.status(201).json(banner);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid data", errors: error.errors });
       } else {
+        console.error("❌ POST banner error:", error);
         res.status(500).json({ message: "Failed to create banner" });
       }
     }
   });
-  app.put("/api/banners/:id", async (req, res) => {
+  app.put("/api/banners/:id", upload.single("image"), async (req, res) => {
     try {
       const id = getId(req);
-      const validatedData = insertBannerSchema.partial().parse(req.body);
+      const oldBanner = await storage.getBannerById(id);
+
+      if (!oldBanner) {
+        return res.status(404).json({ message: "Banner not found" });
+      }
+
+      let imageUrl = oldBanner.imageUrl;
+      if (req.file) {
+        imageUrl = await uploadFile(req, "banners");
+        if (oldBanner.imageUrl) {
+          await deleteFile(oldBanner.imageUrl);
+        }
+      }
+
+      const validatedData = insertBannerSchema.partial().parse({
+        ...req.body,
+        imageUrl: imageUrl,
+      });
+
       const banner = await storage.updateBanner(id, validatedData);
       res.json(banner);
     } catch (error) {
@@ -395,23 +420,48 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
       res.status(500).json({ message: "Failed to fetch gallery" });
     }
   });
-  app.post("/api/gallery", async (req, res) => {
+  app.post("/api/gallery", upload.single("image"), async (req, res) => {
     try {
-      const validatedData = insertGallerySchema.parse(req.body);
+      const imageUrl = req.file ? await uploadFile(req, "gallery") : null;
+
+      const validatedData = insertGallerySchema.parse({
+        ...req.body,
+        imageUrl: imageUrl,
+      });
+
       const gallery = await storage.createGallery(validatedData);
       res.status(201).json(gallery);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid data", errors: error.errors });
       } else {
+        console.error("❌ POST gallery error:", error);
         res.status(500).json({ message: "Failed to create gallery item" });
       }
     }
   });
-  app.put("/api/gallery/:id", async (req, res) => {
+  app.put("/api/gallery/:id", upload.single("image"), async (req, res) => {
     try {
       const id = getId(req);
-      const validatedData = insertGallerySchema.partial().parse(req.body);
+      const oldGallery = await storage.getGalleryById(id);
+
+      if (!oldGallery) {
+        return res.status(404).json({ message: "Gallery item not found" });
+      }
+
+      let imageUrl = oldGallery.imageUrl;
+      if (req.file) {
+        imageUrl = await uploadFile(req, "gallery");
+        if (oldGallery.imageUrl) {
+          await deleteFile(oldGallery.imageUrl);
+        }
+      }
+
+      const validatedData = insertGallerySchema.partial().parse({
+        ...req.body,
+        imageUrl: imageUrl,
+      });
+
       const gallery = await storage.updateGallery(id, validatedData);
       res.json(gallery);
     } catch (error) {
@@ -425,9 +475,21 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
   app.delete("/api/gallery/:id", async (req, res) => {
     try {
       const id = getId(req);
+      
+      const gallery = await storage.getGalleryById(id);
+      if (!gallery) {
+        return res.status(404).json({ message: "Gallery item not found" });
+      }
+
       await storage.deleteGallery(id);
+
+      if (gallery.imageUrl) {
+        await deleteFile(gallery.imageUrl);
+      }
+
       res.status(204).send();
-    } catch {
+    } catch (error) {
+      console.error("❌ DELETE gallery error:", error);
       res.status(500).json({ message: "Failed to delete gallery item" });
     }
   });

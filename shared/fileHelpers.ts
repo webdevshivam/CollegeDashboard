@@ -7,20 +7,6 @@ export async function uploadFile(req: Request, folder: string): Promise<string |
   if (!req.file) return null;
 
   try {
-    const result = await cloudinary.uploader.upload_stream(
-      {
-        folder: folder,
-        resource_type: "auto",
-      },
-      (error, result) => {
-        if (error) {
-          console.error('Cloudinary upload error:', error);
-          return null;
-        }
-        return result?.secure_url || null;
-      }
-    );
-
     return new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
