@@ -107,8 +107,11 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
     mutation.mutate(data);
   };
 
-  const handleFileUpload = (url: string) => {
+  const handleFileUpload = (url: string, file?: File) => {
     form.setValue("imageUrl", url);
+    if (file) {
+      setSelectedFile(file);
+    }
   };
 
   const years = Array.from({ length: 10 }, (_, i) => (new Date().getFullYear() - i).toString());
