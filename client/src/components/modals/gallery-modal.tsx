@@ -52,12 +52,37 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
     }
   }, [item, form]);
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (data: InsertGallery) => {
-      const url = item ? `/api/gallery/${item._id}` : "/api/gallery";
+      const id = item?._id || "";
+      const url = item ? `/api/gallery/${id}` : "/api/gallery";
       const method = item ? "PUT" : "POST";
-      return await apiRequest(method, url, data);
+
+      const formData = new FormData();
+      formData.append('galleryId', data.galleryId);
+      formData.append('year', data.year);
+      formData.append('category', data.category);
+      formData.append('title', data.title);
+      if (data.imageUrl) {
+        formData.append('imageUrl', data.imageUrl);
+      }
+      if (selectedFile) {
+        formData.append('image', selectedFile);
+      }
+
+      const response = await fetch(`http://localhost:5000${url}`, {
+        method,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Upload failed');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gallery"] });
@@ -67,6 +92,7 @@ export default function GalleryModal({ isOpen, onClose, item }: GalleryModalProp
       });
       onClose();
       form.reset();
+      setSelectedFile(null);
     },
     onError: () => {
       toast({

@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertBannerSchema, type Banner, type InsertBanner } from "@shared/schema";
 import FileUpload from "@/components/ui/file-upload";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface BannerModalProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ interface BannerModalProps {
 export default function BannerModal({ isOpen, onClose, banner }: BannerModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const form = useForm<InsertBanner>({
     resolver: zodResolver(insertBannerSchema),
@@ -49,7 +50,7 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
   }, [banner, form]);
 
   const mutation = useMutation({
-    mutationFn: async (data: InsertBanner & { file?: File }) => {
+    mutationFn: async (data: InsertBanner) => {
       const id = banner?._id || "";
       const url = banner ? `/api/banners/${id}` : "/api/banners";
       const method = banner ? "PUT" : "POST";
@@ -62,8 +63,8 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
       if (data.imageUrl) {
         formData.append('imageUrl', data.imageUrl);
       }
-      if (data.file) {
-        formData.append('image', data.file);
+      if (selectedFile) {
+        formData.append('image', selectedFile);
       }
 
       const response = await fetch(`http://localhost:5000${url}`, {
@@ -86,6 +87,7 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
       });
       onClose();
       form.reset();
+      setSelectedFile(null);
     },
     onError: () => {
       toast({
@@ -100,8 +102,11 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
     mutation.mutate(data);
   };
 
-  const handleFileUpload = (url: string) => {
+  const handleFileUpload = (url: string, file?: File) => {
     form.setValue("imageUrl", url);
+    if (file) {
+      setSelectedFile(file);
+    }
   };
 
   return (
