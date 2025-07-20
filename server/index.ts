@@ -34,7 +34,7 @@ app.use(cors({
     const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
     console.error("❌ MONGODB_URI environment variable is not set.");
-    process.exit(1); // Crucial: exit if the connection string is missing
+    process.exit(1);
 }
     await mongoose.connect(mongoUri);
     console.log("✅ MongoDB Atlas connected");
