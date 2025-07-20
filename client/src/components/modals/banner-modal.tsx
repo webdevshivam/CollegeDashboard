@@ -67,7 +67,7 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
         formData.append('image', selectedFile);
       }
 
-      const response = await fetch(`http://localhost:5000${url}`, {
+      const response = await fetch(url, {
         method,
         body: formData,
       });
