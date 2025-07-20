@@ -154,15 +154,23 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
     try {
       const imageUrl = req.file ? await uploadFile(req, "banners") : null;
 
-      const validatedData = insertBannerSchema.parse({
+      // Convert FormData string values to proper types
+      const processedData = {
         ...req.body,
-        imageUrl: imageUrl,
-      });
+        priority: parseInt(req.body.priority) || 1,
+        isActive: req.body.isActive === 'true',
+        imageUrl: imageUrl || req.body.imageUrl || "",
+      };
+
+      console.log("Processing banner data:", processedData);
+
+      const validatedData = insertBannerSchema.parse(processedData);
 
       const banner = await storage.createBanner(validatedData);
       res.status(201).json(banner);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("❌ Banner validation errors:", error.errors);
         res.status(400).json({ message: "Invalid data", errors: error.errors });
       } else {
         console.error("❌ POST banner error:", error);
@@ -187,15 +195,21 @@ app.post("/api/faculty", upload.single("image"), async (req, res) => {
         }
       }
 
-      const validatedData = insertBannerSchema.partial().parse({
+      // Convert FormData string values to proper types
+      const processedData = {
         ...req.body,
+        priority: req.body.priority ? parseInt(req.body.priority) : undefined,
+        isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' : undefined,
         imageUrl: imageUrl,
-      });
+      };
+
+      const validatedData = insertBannerSchema.partial().parse(processedData);
 
       const banner = await storage.updateBanner(id, validatedData);
       res.json(banner);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("❌ Banner update validation errors:", error.errors);
         res.status(400).json({ message: "Invalid data", errors: error.errors });
       } else {
         res.status(500).json({ message: "Failed to update banner" });

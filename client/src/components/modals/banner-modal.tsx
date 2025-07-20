@@ -56,10 +56,10 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
       const method = banner ? "PUT" : "POST";
 
       const formData = new FormData();
-      formData.append('bannerId', data.bannerId);
-      formData.append('title', data.title);
-      formData.append('priority', data.priority.toString());
-      formData.append('isActive', data.isActive ? 'true' : 'false');
+      formData.append('bannerId', data.bannerId || '');
+      formData.append('title', data.title || '');
+      formData.append('priority', String(data.priority || 1));
+      formData.append('isActive', String(data.isActive === true));
       if (data.imageUrl) {
         formData.append('imageUrl', data.imageUrl);
       }
@@ -74,6 +74,7 @@ export default function BannerModal({ isOpen, onClose, banner }: BannerModalProp
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Banner upload error:', errorData);
         throw new Error(errorData.message || 'Upload failed');
       }
 
