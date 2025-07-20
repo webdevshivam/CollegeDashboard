@@ -6,6 +6,7 @@ import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes.ts";
 import { setupVite, serveStatic, log } from "./vite";
+import { createServer } from "http";
 
 dotenv.config();
 
@@ -76,7 +77,15 @@ app.use((req, res, next) => {
 
 // Main app setup inside an async function
 (async () => {
-  const server = await registerRoutes(app);
+  const server = createServer(app);
+  await registerRoutes(app);
+
+  // Setup Vite dev server or serve static files
+  if (process.env.NODE_ENV === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 
   // Global error handler middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
